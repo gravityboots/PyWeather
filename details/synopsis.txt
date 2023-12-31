@@ -1,0 +1,40 @@
+Weather App in Python
+
+OpenWeather services that we will use:
+
+API KEY: 460de012b0fd52774245f52ed38c4888
+Random API Key I found online: bd5e378503939ddaee76f12ad7a97608
+
+MAIN
+https://openweathermap.org/current (for requesting current weather; can give rain, snow, etc. description)
+https://openweathermap.org/forecast5 (for requesting 3-hourly weather data for 5 days)
+
+DISPLAY
+https://openweathermap.org/weather-conditions (reference for choosing icons)
+https://www.figma.com/community/file/1126777451931792118 (weather icons)
+https://www.figma.com/file/o6x623jtO0SXWzs9aIOdzG/Weather-Glassmorphism-Icon-(Community) (weather icons editable)
+https://fontawesome.com/icons/categories/weather (extra icons)
+
+https://openweathermap.org/api/geocoding-api (for converting city name to latitude and longitude)
+
+EXTRA
+https://openweathermap.org/api/weathermaps (to show a weather map)
+https://openweathermap.org/stations (for finding the nearest weather station being used in API weather call)
+https://openweathermap.org/api/air-pollution (for air pollution, not really needed)
+https://openweathermap.org/triggers (extra thing, not really needed)
+
+EXAMPLE IMPLEMENTATION:
+https://www.askpython.com/python/examples/gui-weather-app-in-python
+
+
+National Public School, Indiranagar
+Grade XI-B
+
+Computer Science Project: Weather Application
+Manu Dhulipala, Sanjay Shriram, Aditi Kamat
+
+A modern and functional weather app with the use of OpenWeather API for weather data and python gui library customtkinter.
+
+Language: Python
+Software used: OpenWeatherMap API services
+Packages and Libraries: customtkinter, PIL (Python image library), requests 

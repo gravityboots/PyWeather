@@ -6,11 +6,11 @@ It is a school/personal project of mine that I will continue to work on in my fr
 
 Example of the app in light mode (day time):
 
-![02](https://github.com/gravityboots/PyWeather/assets/117709053/410326be-dde2-420f-af99-5c5ca93ba4bc)
+![!01 newyork](https://github.com/gravityboots/PyWeather/assets/117709053/7cc07e61-e240-44bc-b0c8-81ba1196cb42)
 
 Example of the app in dark mode (night time):
 
-![01](https://github.com/gravityboots/PyWeather/assets/117709053/2eabacd4-f104-4035-9e61-9216e7b3131d)
+![!02 tokyo](https://github.com/gravityboots/PyWeather/assets/117709053/bf3f9e7c-575d-442d-813a-5b5344b8f4a1)
 
 
 # Instructions for Use

@@ -17,4 +17,4 @@ Example of the app in dark mode (night time):
 
 In order to use the app, you must go to the green "Download Code button", and doownload the zip folder of the code. From there extract the zipped folder, and move it to wherever is convenient. Once that is done, you can open the directory in whichever code editor/terminal you are familiar with and run main.py. If you encounter any issues, please let me know, my e-mail ID is "gravityboots17@gmail.com".
 
-Hopefully you have a great time using the app to find out your local weather and to forecast the weather!
+Hopefully you have a great time using the app to find out your local weather and get the upcoming forecast, so you're never caught off-guard!

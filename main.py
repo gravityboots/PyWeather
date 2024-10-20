@@ -1,14 +1,61 @@
-# PyWeather™: A modern weather app in python using OpenWeather API, and customtkinter
+# PyWeather™ (v4.3): A modern weather app in python using OpenWeather API, and customtkinter
 
+from ctypes import windll, byref, sizeof, c_int
+import sys, os
 import customtkinter as ctk
 from PIL import Image
-from ctypes import windll, byref, sizeof, c_int
-from weather import get_weather, get_forecast
 from datetime import datetime
+import requests
+import webbrowser
+from geopy.geocoders import Nominatim
+import geopy
+import random
+
+if getattr(sys, 'frozen', False):
+    import pyi_splash # type: ignore # ignore this error, the module will be imported in the frozen executable
+
+
+key = '460de012b0fd52774245f52ed38c4888'
+#paid_key = 'bd5e378503939ddaee76f12ad7a97608'  # "startup" plan key; https://openweathermap.org/price
+
+
+def resource_path(relative_path:str):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+ 
+    return os.path.join(base_path, relative_path)
+
+
+def get_weather(lat:float|int, lon:float|int):
+    response = requests.get(f'http://api.openweathermap.org/data/2.5/weather?lat={lat:.4f}&lon={lon:.4f}&appid={key}')
+    response = dict(response.json())
+    return response
+
+
+def get_forecast(lat:float|int, lon:float|int):
+    response = requests.get(f'http://api.openweathermap.org/data/2.5/forecast?lat={lat:.4f}&lon={lon:.4f}&appid={key}')
+    response = dict(response.json())    
+    return response
+
+
+def get_weather_geocoded(place:str):
+    response = requests.get(f'http://api.openweathermap.org/data/2.5/weather?q={place}&appid={key}')
+    response = dict(response.json())
+    return response
+
+
+def get_forecast_geocoded(place:str):
+    response = requests.get(f'http://api.openweathermap.org/data/2.5/forecast?q={place}&appid={key}')
+    response = dict(response.json())    
+    return response
 
 
 class SideFrame(ctk.CTkFrame):
-    def __init__(self, parent, fg_color):
+    def __init__(self,parent,fg_color):
         super().__init__(parent,fg_color=fg_color)  # method must be called to create widget instance
 
         # populate frame
@@ -16,22 +63,22 @@ class SideFrame(ctk.CTkFrame):
 
         # place frame
         self.place(relx=0.01,rely=0.01,relwidth=0.33,relheight=0.98)
-    
+
     def populate(self,c,icons,bfont,mfont,sfont,efont):
         # create widgets
         self.locationFrame = ctk.CTkFrame(self,fg_color='transparent')
-        self.locationEntry = ctk.CTkEntry(self.locationFrame,font=efont,fg_color=(c['white'],c['dark_bg']),border_color=(c['white'],c['dark_bg']),placeholder_text='Enter city (e.g. London, GB)')
+        self.locationEntry = ctk.CTkEntry(self.locationFrame,font=efont,fg_color=(c['white'],c['dark_bg']),border_color=(c['white'],c['dark_bg']),placeholder_text='Enter location (e.g. Bangalore)')
         self.runButton = ctk.CTkButton(self.locationFrame,image=icons['run'],text='',width=16)
 
         self.weatherFrame = ctk.CTkFrame(self,fg_color='transparent')
         self.weatherIconLabel = ctk.CTkLabel(self.weatherFrame,fg_color='transparent',font=bfont,text_color=(c['light_mfont'],c['dark_mfont']),image=icons['null'],text='')
         self.temperatureLabel = ctk.CTkLabel(self.weatherFrame,fg_color='transparent',font=bfont,text_color=(c['light_bfont'],c['dark_bfont']),text='—')
-        self.weatherTypeLabel = ctk.CTkLabel(self.weatherFrame,fg_color='transparent',font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Enter a city to get\nits current weather.')
+        self.weatherTypeLabel = ctk.CTkLabel(self.weatherFrame,fg_color='transparent',font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Enter a location to get\nits current weather.')
 
         self.timeFrame = ctk.CTkFrame(self,fg_color='transparent')
-        self.dayLabel = ctk.CTkLabel(self.timeFrame,text='',font=sfont,text_color=(c['light_sfont'],c['dark_sfont']))
         self.timeLabel = ctk.CTkLabel(self.timeFrame,text='',font=sfont,text_color=(c['light_sfont'],c['dark_sfont']))
-        self.locationLabel = ctk.CTkLabel(self.timeFrame,font=sfont,text_color=(c['light_sfont'],c['dark_sfont']),text='—')
+        self.dayLabel = ctk.CTkLabel(self.timeFrame,text='',font=sfont,text_color=(c['light_sfont'],c['dark_sfont']))
+        self.locationLabel = ctk.CTkLabel(self.timeFrame,font=sfont,text_color=(c['light_sfont'],c['dark_sfont']),text='')
 
         # place widgets
         self.locationFrame.pack(fill='x',side='top',pady=12)
@@ -41,12 +88,12 @@ class SideFrame(ctk.CTkFrame):
         self.weatherFrame.pack(expand=True,fill='both')
         self.weatherIconLabel.pack(expand=True,padx=25)
         self.temperatureLabel.pack(padx=25)
-        self.weatherTypeLabel.pack(padx=25)
+        self.weatherTypeLabel.pack(padx=25,pady=(0,25))
 
-        self.timeFrame.pack(side='bottom',anchor='e',padx=25,pady=25)
-        self.dayLabel.pack(expand=True,anchor='e')
-        self.timeLabel.pack(expand=True,anchor='e')
-        self.locationLabel.pack(expand=True,anchor='e')
+        self.timeFrame.pack(fill='x',side='bottom',anchor='w',padx=25,pady=25)
+        self.timeLabel.pack(anchor='w')
+        self.dayLabel.pack(anchor='w')
+        self.locationLabel.pack(anchor='w')
 
 
 class MainFrame(ctk.CTkFrame):
@@ -61,28 +108,108 @@ class MainFrame(ctk.CTkFrame):
     
 
     def populate(self,c,icons,bfont,mfont,sfont,efont):
+        # create options widgets
+        self.optionsFrame = ctk.CTkFrame(self,fg_color=(c['light_box'],c['dark_box']))
+        self.unitsMenu = ctk.CTkOptionMenu(
+            self.optionsFrame,
+            font=efont,
+            text_color=(c['light_sfont'],c['dark_sfont']),
+            fg_color=(c['light_frame'],c['dark_bg']),
+            button_color=(c['light_frame'],c['dark_bg']),
+            button_hover_color=(c['white'],c['dark_frame']),
+            dropdown_font=efont,
+            dropdown_fg_color=(c['white'],c['black']),
+            dropdown_hover_color=c['blue'],
+            dropdown_text_color=(c['black'],c['white']),
+            values=['Metric (°C, km/h)','Metric (K, m/s)','Imperial (°F, mph)'],
+        )
+        self.hourFormatButton = ctk.CTkButton(
+            self.optionsFrame,
+            font=efont,
+            text='12-Hour Format',
+            width=14,
+            text_color=(c['light_frame'],c['dark_sfont']),
+            fg_color=(c['light_box'],c['dark_box']),
+            border_width=1,
+            border_color=(c['light_frame'],c['dark_frame']),
+            hover_color=(c['light_bg'],c['dark_bg'])
+        )
+        self.colorModeButton = ctk.CTkButton(
+            self.optionsFrame,
+            font=efont,
+            text='Light Mode',
+            width=10,
+            text_color=(c['light_frame'],c['dark_sfont']),
+            fg_color=(c['light_box'],c['dark_box']),
+            border_width=1,
+            border_color=(c['light_frame'],c['dark_frame']),
+            hover_color=(c['light_bg'],c['dark_bg'])
+        )
+        self.mapButton = ctk.CTkButton(
+            self.optionsFrame,
+            font=efont,
+            text='Open Location ↗',
+            width=15,
+            text_color=(c['light_frame'],c['dark_sfont']),
+            fg_color=(c['light_box'],c['dark_box']),
+            border_width=1,
+            border_color=(c['light_frame'],c['dark_frame']),
+            hover_color=(c['light_bg'],c['dark_bg']),
+            state='disabled'
+        )
+        self.weatherMapButton = ctk.CTkButton(
+            self.optionsFrame,
+            font=efont,
+            text='Weather Map ↗',
+            width=15,
+            text_color=(c['light_frame'],c['dark_sfont']),
+            fg_color=(c['light_box'],c['dark_box']),
+            border_width=1,
+            border_color=(c['light_frame'],c['dark_frame']),
+            hover_color=(c['light_bg'],c['dark_bg']),
+            state='disabled'
+        )
+        self.aboutButton = ctk.CTkButton(
+            self.optionsFrame,
+            font=efont,
+            text='About',
+            width=5,
+            text_color=(c['light_sfont'],c['dark_sfont']),
+            fg_color=(c['light_frame'],c['dark_bg']),
+            hover_color=(c['white'],c['dark_frame'])
+        )
+
+        # place options widgets
+        self.optionsFrame.pack(fill='x',pady=(0,12))
+        self.unitsMenu.pack(side='left',padx=6,pady=6)
+        self.hourFormatButton.pack(side='left',padx=(0,6),pady=6)
+        self.colorModeButton.pack(side='left',padx=(0,6),pady=6)
+        self.mapButton.pack(side='left',padx=(0,6),pady=6)
+        self.weatherMapButton.pack(side='left',padx=(0,6),pady=6)
+        self.aboutButton.pack(side='right',padx=(0,6),pady=6)
+
         # create info widgets
         self.infoFrame = ctk.CTkFrame(self,fg_color='transparent')
 
         self.sunFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.sunIconLabel = ctk.CTkLabel(self.sunFrame,image=icons['sun_d'],text='')
+        self.sunIconLabel = ctk.CTkLabel(self.sunFrame,image=icons['sun_n'],text='')
         self.sunLabel = ctk.CTkLabel(self.sunFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Rise ——\nSet ——')
 
         self.windFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.windIconLabel = ctk.CTkLabel(self.windFrame,image=icons['wind_d'],text='')
+        self.windIconLabel = ctk.CTkLabel(self.windFrame,image=icons['wind_n'],text='')
         self.windLabel = ctk.CTkLabel(self.windFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Wind\n——')
 
         self.humidityFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.humidityIconLabel = ctk.CTkLabel(self.humidityFrame,image=icons['drop_d'],text='')
+        self.humidityIconLabel = ctk.CTkLabel(self.humidityFrame,image=icons['drop_n'],text='')
         self.humidityLabel = ctk.CTkLabel(self.humidityFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Humidity\n——')
 
         self.cloudFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.cloudIconLabel = ctk.CTkLabel(self.cloudFrame,image=icons['cloud_d'],text='')
+        self.cloudIconLabel = ctk.CTkLabel(self.cloudFrame,image=icons['cloud_n'],text='')
         self.cloudLabel = ctk.CTkLabel(self.cloudFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Cloud Cover \n——')
 
         # place info widgets
         self.infoFrame.pack(fill='both',pady=(0,12))
-        
+
         self.sunFrame.pack(expand=True,fill='both',side='left',padx=(0,12))
         self.sunIconLabel.pack(padx=25,pady=25)
         self.sunLabel.pack(padx=25,pady=(0,25))
@@ -99,16 +226,16 @@ class MainFrame(ctk.CTkFrame):
         self.cloudIconLabel.pack(padx=25,pady=25)
         self.cloudLabel.pack(padx=25,pady=(0,25))
 
-        # create forecast widgets
-        self.forecastsFrame = ctk.CTkScrollableFrame(self,fg_color=(c['light_box'],c['dark_box']))
-        self.colorModeButton = ctk.CTkButton(self.forecastsFrame,font=efont,text='Force Dark Mode')
-
-        # place forecast widgets
+        # create & place forecast widgets
+        self.forecastsFrame = ctk.CTkScrollableFrame(
+            self,
+            fg_color=(c['light_box'],c['dark_box']),
+            scrollbar_button_color=(c['light_bg'],c['dark_bg']),
+            scrollbar_button_hover_color=(c['white'],c['dark_sfont'])
+        )
         self.forecastsFrame.pack(expand=True,fill='both')
-        self.colorModeButton.pack(side='top',anchor='w',pady=(0,6))
 
-        # create all 40 weather forecast frames & widgets in a dictionary for easy of access, and remaining modular
-        self.forecasts = {}
+        self.forecasts = {} # create all 40 weather forecast frames & widgets in a dictionary for easy of access, and remaining modular
         for i in range(40):
             self.forecasts[i] = ForecastFrame(self.forecastsFrame,(c['light_frame'],c['dark_frame']),c,icons,bfont,mfont,sfont,efont)
 
@@ -122,21 +249,60 @@ class ForecastFrame(ctk.CTkFrame):  # forecast frame to modularize creation of a
         # populate frame: create widgets
         self.forecastIconLabel = ctk.CTkLabel(self,text='',image=icons['null_small'])
         self.forecastTimeLabel = ctk.CTkLabel(self,font=sfont,text_color=(c['light_sfont'],c['dark_sfont']),text='')
-        self.forecastTypeLabel = ctk.CTkLabel(self,font=sfont,text_color=(c['light_sfont'],c['dark_sfont']),text='——')
-        self.forecastTemperatureLabel = ctk.CTkLabel(self,font=sfont,text_color=(c['light_sfont'],c['dark_sfont']),text='')
+        self.forecastTypeLabel = ctk.CTkLabel(self,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='——')
+        self.forecastDataLabel = ctk.CTkLabel(self,font=sfont,text_color=(c['light_sfont'],c['dark_sfont']),text='')
 
         # populate frame: place widgets
         self.forecastIconLabel.grid(row=0,column=0,padx=(12,0))
         self.forecastTimeLabel.grid(row=0,column=1)
         self.forecastTypeLabel.grid(row=0,column=2)
-        self.forecastTemperatureLabel.grid(row=0,column=3,padx=(0,25))
+        self.forecastDataLabel.grid(row=0,column=3,padx=(0,25))
 
         # place frame
         self.pack(expand=True,fill='x',pady=(0,6))
 
 
+class AboutWindow(ctk.CTkToplevel):  # toplevel window for information about the app
+    def __init__(self,parent,c,icons,rfont,mfont,sfont,efont):
+        super().__init__(parent)  # method must be called to create widget instance
+        self.title('About PyWeather™')
+        self.minsize(640,512)
+        self.attributes('-topmost', True)
+        self.update()
+
+        self.aboutWindowFrame = ctk.CTkScrollableFrame(self,fg_color='transparent')
+        self.aboutWindowFrame.pack(expand=True,fill='both')
+
+        self.titleLabel = ctk.CTkLabel(self.aboutWindowFrame,font=rfont,text='PyWeather (v4.3)',image=icons['11n'],compound='top')
+        self.titleLabel.pack(expand=True,fill='both',padx=25,pady=25)
+
+        self.textbox = ctk.CTkTextbox(self.aboutWindowFrame,font=sfont,fg_color='transparent',wrap='word',height=1080)
+        self.textbox.pack(expand=True,fill='both',padx=25,pady=(0,25))
+        self.textbox.insert('0.0','''
+Weather data sourced from https://api.openweathermap.org
+Geocoding by geopy: https://pypi.org/project/geopy
+App built using CustomTkinter: https://customtkinter.tomschimansky.com
+
+A modern weather app built in python (compatible with Python 3.10 onwards), using the customtkinter library by Tom Schimansky, with data sourced from OpenWeather current weather, and 5-day, 3-hour weather forecast APIs.
+
+To use the app, simply type in either the desired city/locality name or coordinates (as latitude, longitude) into the search bar and run via the button, or by pressing return. Upon a successful geocoding of the location (using the geopy module's Nominatim geocoder for OpenSreetMap's address data) you will find many details about the current weather info, local time and basic info about the weather for the next 5 days at 3-hour intervals. In each forecast, the probability of precipitation (PoP) is given for the sake of accuracy.
+
+The app will automatically convert to light/dark mode depending on the time of day in the given location, however you can change the colour mode from the toolbar at the top of the application. From the toolbar you can also choose to customise the units used from a dropdown menu, and toggle between clock-hour formats from a button as well as display some information. If the location result is successful you can also click on the "Open Location ↗" button to check the location on google maps, or the "Weather Map ↗" button to find a detailed and interactive weather map for precipitation, clouds, et cetera.
+
+It is possible that when searching for the location, the app will raise an error which can be due to several possible reasons. Here are some possible error cases:
+1. No location entered (user will be prompted with 'Please provide a location.')
+2. Invalid location/coordinates entered (user will be prompted with 'Location not found!')
+3. No internet connection/request timed out (user will be prompted with 'No connection!')''')
+        self.textbox.configure(state="disabled")
+
+
 class App(ctk.CTk):
     def __init__(self):
+
+
+        # WINDOW INITALIZATION
+
+
         # app colors
         self.c = {
             'light_bg':'#91B3D2',
@@ -159,52 +325,27 @@ class App(ctk.CTk):
         # app window initialization
         super().__init__(fg_color=(self.c['light_bg'],self.c['dark_bg']))
         self.title('PyWeather™')
-        self.minsize(1200,600)  # Originally 512x300, can work on adding responsive GUI in 12th
-        self.iconbitmap('./assets/icons/dayicon.ico')
+        self.minsize(1100,720)  # Originally 512x300, can work on adding responsive GUI in 12th
+        self.iconbitmap(resource_path('assets/nighticon.ico'))
         self.bind_all("<Button-1>", lambda event: event.widget.focus_set())  # lets the user defocus from entry widget
 
         # app fonts
         self.bfont = ctk.CTkFont('Plus Jakarta Sans', 60, 'bold')
+        self.rfont = ctk.CTkFont('Plus Jakarta Sans', 36, 'bold')
         self.mfont = ctk.CTkFont('DM Sans',25)
         self.sfont = ctk.CTkFont('Space Mono',16)
         self.efont = ctk.CTkFont('Space Mono', 12)
 
         # app light & dark modes
         self.colormodes = 'light', 'dark'
-        self.colormode = self.colormodes[0]
+        self.colormode = self.colormodes[1]
         ctk.set_appearance_mode(self.colormode)
 
-        # interacts with windows's window-attributes to change titlebar color
+        # interact with windows's window-attributes to change titlebar color
         self.titlecolors = 0x00D2B391, 0x003D1C0F
-        self.titlecolor = self.titlecolors[0]
+        self.titlecolor = self.titlecolors[1]
         self.HWND = windll.user32.GetParent(self.winfo_id())
         windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
-
-
-        # light-dark mode toggle function
-        def toggle_color_mode():
-            if self.colormode==self.colormodes[0]:
-                self.colormode = self.colormodes[1]
-                self.titlecolor = self.titlecolors[1]
-                self.iconbitmap('./assets/icons/nighticon.ico')
-                self.main_frame.colorModeButton.configure(text='Force Light Mode')
-                self.main_frame.sunIconLabel.configure(image=self.icons['sun_n'])
-                self.main_frame.windIconLabel.configure(image=self.icons['wind_n'])
-                self.main_frame.humidityIconLabel.configure(image=self.icons['drop_n'])
-                self.main_frame.cloudIconLabel.configure(image=self.icons['cloud_n'])
-            else:
-                self.colormode = self.colormodes[0]
-                self.titlecolor = self.titlecolors[0]
-                self.iconbitmap('./assets/icons/dayicon.ico')
-                self.main_frame.colorModeButton.configure(text='Force Dark Mode')
-                self.main_frame.sunIconLabel.configure(image=self.icons['sun_d'])
-                self.main_frame.windIconLabel.configure(image=self.icons['wind_d'])
-                self.main_frame.humidityIconLabel.configure(image=self.icons['drop_d'])
-                self.main_frame.cloudIconLabel.configure(image=self.icons['cloud_d'])
-
-            windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
-            ctk.set_appearance_mode(self.colormode)
-
 
         # app icons
         scale1 = 0.1875
@@ -214,77 +355,229 @@ class App(ctk.CTk):
         self.icons = {}
         for code in ["01","02","03","04","09","10","11","13","50"]:
             for dn in ('d','n'):
-                self.icons[f'{code}{dn}'] = ctk.CTkImage(Image.open(f"assets/icons/{code}{dn}.png"),size=(1660*scale1,1660*scale1))
-                self.icons[f'{code}{dn}_small'] = ctk.CTkImage(Image.open(f"assets/icons/{code}{dn}.png"),size=(1660*scale3,1660*scale3))
+                self.icons[f'{code}{dn}'] = ctk.CTkImage(Image.open(resource_path(f"assets/{code}{dn}.png")),size=(1660*scale1,1660*scale1))
+                self.icons[f'{code}{dn}_small'] = ctk.CTkImage(Image.open(resource_path(f"assets/{code}{dn}.png")),size=(1660*scale3,1660*scale3))
         
-        self.icons['null'] = ctk.CTkImage(Image.open(f"assets/icons/null.png"),size=(1660*scale1,1660*scale1))
-        self.icons['null_small'] = ctk.CTkImage(Image.open(f"assets/icons/null.png"),size=(1660*scale3,1660*scale3))
+        self.icons['null'] = ctk.CTkImage(Image.open(resource_path(f"assets/null.png")),size=(1660*scale1,1660*scale1))
+        self.icons['null_small'] = ctk.CTkImage(Image.open(resource_path(f"assets/null.png")),size=(1660*scale3,1660*scale3))
 
-        self.icons['sun_d'] = ctk.CTkImage(Image.open(f"assets/icons/sun_d.png"),size=(512*scale2,320*scale2))
-        self.icons['sun_n'] = ctk.CTkImage(Image.open(f"assets/icons/sun_n.png"),size=(512*scale2,320*scale2))
-        self.icons['wind_d'] = ctk.CTkImage(Image.open(f"assets/icons/wind_d.png"),size=(320*scale2,320*scale2))
-        self.icons['wind_n'] = ctk.CTkImage(Image.open(f"assets/icons/wind_n.png"),size=(320*scale2,320*scale2))
-        self.icons['drop_d'] = ctk.CTkImage(Image.open(f"assets/icons/drop_d.png"),size=(240*scale2,320*scale2))
-        self.icons['drop_n'] = ctk.CTkImage(Image.open(f"assets/icons/drop_n.png"),size=(240*scale2,320*scale2))
-        self.icons['cloud_d'] = ctk.CTkImage(Image.open(f"assets/icons/cloud_d.png"),size=(400*scale2,320*scale2))
-        self.icons['cloud_n'] = ctk.CTkImage(Image.open(f"assets/icons/cloud_n.png"),size=(400*scale2,320*scale2))
+        self.icons['sun_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/sun_d.png")),size=(512*scale2,320*scale2))
+        self.icons['sun_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/sun_n.png")),size=(512*scale2,320*scale2))
+        self.icons['wind_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/wind_d.png")),size=(320*scale2,320*scale2))
+        self.icons['wind_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/wind_n.png")),size=(320*scale2,320*scale2))
+        self.icons['drop_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/drop_d.png")),size=(240*scale2,320*scale2))
+        self.icons['drop_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/drop_n.png")),size=(240*scale2,320*scale2))
+        self.icons['cloud_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/cloud_d.png")),size=(400*scale2,320*scale2))
+        self.icons['cloud_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/cloud_n.png")),size=(400*scale2,320*scale2))
 
-        self.icons['run'] = ctk.CTkImage(Image.open(f"assets/icons/run.png"),size=(15,15))
+        self.icons['run'] = ctk.CTkImage(Image.open(resource_path(f"assets/run.png")),size=(15,15))
 
         # create frames for window — where all the widgets are created
         self.side_frame = SideFrame(self,(self.c['light_frame'],self.c['dark_frame']))
         self.main_frame = MainFrame(self,'transparent')
+        self.about_window = None
 
-        # update the app widgets
-        self.weather = get_weather(self.side_frame.locationEntry.get())
+
+        # FUNCTIONS
+
+
+        # light-dark mode toggle function
+        def toggle_color_mode():
+            if self.colormode==self.colormodes[0]:
+                self.colormode = self.colormodes[1]
+                self.titlecolor = self.titlecolors[1]
+                self.iconbitmap(resource_path('assets/nighticon.ico'))
+                self.main_frame.colorModeButton.configure(text='Light Mode')
+                self.main_frame.sunIconLabel.configure(image=self.icons['sun_n'])
+                self.main_frame.windIconLabel.configure(image=self.icons['wind_n'])
+                self.main_frame.humidityIconLabel.configure(image=self.icons['drop_n'])
+                self.main_frame.cloudIconLabel.configure(image=self.icons['cloud_n'])
+            else:
+                self.colormode = self.colormodes[0]
+                self.titlecolor = self.titlecolors[0]
+                self.iconbitmap(resource_path('assets/dayicon.ico'))
+                self.main_frame.colorModeButton.configure(text='Dark Mode')
+                self.main_frame.sunIconLabel.configure(image=self.icons['sun_d'])
+                self.main_frame.windIconLabel.configure(image=self.icons['wind_d'])
+                self.main_frame.humidityIconLabel.configure(image=self.icons['drop_d'])
+                self.main_frame.cloudIconLabel.configure(image=self.icons['cloud_d'])
+
+            windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
+            ctk.set_appearance_mode(self.colormode)
+
+
+        # toggle units functions
+        self.unit_scheme = 'Metric (°C, km/h)'
+
+
+        def toggle_units(scheme):
+            self.unit_scheme = scheme
+            update(None)
+
+
+        def format_units(value, quantity):
+            if quantity=='T': # convert temperature from metric-kelvin into current unit scheme
+                if self.unit_scheme=='Metric (°C, km/h)':
+                    return f"{int(value-273.15)}°"
+                elif self.unit_scheme=='Imperial (°F, mph)':
+                    return f"{int((1.8*(value-273.15))+32)}°"
+                else:
+                    return f"{int(value)}K"
+
+            elif quantity=='V': # convert velocity from metric-m/s into current unit scheme
+                if self.unit_scheme=='Metric (°C, km/h)':
+                    return f"{value*3.6:.2f}km/h"
+                elif self.unit_scheme=='Imperial (°F, mph)':
+                    return f"{value*2.2369362920544:.2f}mph"
+                else:
+                    return f"{value:.2f}m/s"
+
+            else: return None
+
+
+        # toggle clock hour format function
+        self.hour_format = 24
+
+
+        def toggle_hour_format():
+            if self.hour_format==24:
+                self.hour_format = 12
+                self.main_frame.hourFormatButton.configure(text='24-Hour Format')
+            else:
+                self.hour_format = 24
+                self.main_frame.hourFormatButton.configure(text='12-Hour Format')
+            update(None)
+
+
+        # open map function
+        def open_map():
+            try:
+                webbrowser.open(f"https://www.google.com/maps/place/{self.location.latitude},{self.location.longitude}")
+            except:
+                self.main_frame.mapButton.configure(state='disabled')
+
+
+        # open weather map function
+        def open_weather_map():
+            try:
+                webbrowser.open(f"https://openweathermap.org/weathermap?basemap=map&cities=false&layer=precipitation&lat={self.location.latitude}&lon={self.location.longitude}")
+            except:
+                self.main_frame.weatherMapButton.configure(state='disabled')
+
+
+        # open about window function
+        def open_about_window():
+            if self.about_window is None or not self.about_window.winfo_exists():
+                self.about_window = AboutWindow(self,self.c,self.icons,self.rfont,self.mfont,self.sfont,self.efont)  # create window if its None or destroyed
+            else:
+                self.about_window.focus()  # if window exists focus it
+
+
+        # update the app widgets functions (core of the app's working)
+        try:
+            self.weather = get_weather_geocoded(self.side_frame.locationEntry.get())
+        except requests.exceptions.ConnectionError:
+            self.weather = {'cod':0,'message':''}
+            self.forecast = {}
 
 
         def update(event):  # main function that updates all the app widgets with weather & forecast data
-            self.location = self.side_frame.locationEntry.get()
-            self.weather = get_weather(self.location)
-            self.forecast = get_forecast(self.location)
+            self.geolocator = Nominatim(user_agent="PyWeather")
 
+            try: # handle location input
+                self.location = self.geolocator.geocode(self.side_frame.locationEntry.get(),addressdetails=True,language='en')
+
+                if self.location is not None:
+                    self.weather = get_weather(self.location.latitude, self.location.longitude)
+                    self.forecast = get_forecast(self.location.latitude, self.location.longitude)
+                    forecast_temperatures = [self.forecast['list'][i]['main']['temp'] for i in range(8)] + [self.weather['main']['temp']]
+                    self.daily = {'min':min(forecast_temperatures),'max':max(forecast_temperatures)}
+                elif self.side_frame.locationEntry.get()=='':
+                    self.weather = {'cod':404,'message':'Please provide a location.'}
+                    self.forecast = {}
+                    self.daily = {}
+                else:
+                    self.weather = {'cod':404,'message':'Location not found!'}
+                    self.forecast = {}
+                    self.daily = {}
+            except geopy.exc.GeocoderUnavailable:
+                self.weather = {'cod':599,'message':'No connection!'} # (informal convention) connection timed out code: 599
+                self.forecast = {}
+                self.daily = {}
+            except:
+                self.weather = {'cod':400,'message':'Skill issue.'} # bad request code: 400
+                self.forecast = {}
+                self.daily = {}
+                           
             if self.weather['cod']==200:  # 200 is the success, code; error codes such as 404, 400, etc. will not yield any data
+                self.main_frame.mapButton.configure(state='normal')
+                self.main_frame.weatherMapButton.configure(state='normal')
 
                 self.side_frame.weatherIconLabel.configure(image=self.icons[self.weather['weather'][0]['icon']])
-                self.side_frame.weatherTypeLabel.configure(font=self.mfont,text=f'''{self.weather['weather'][0]['description'].title()} ({int(self.weather['main']['temp_max']-273.15)}° / {int(self.weather['main']['temp_min']-273.15)}°)''')
-                self.side_frame.temperatureLabel.configure(text=f"{int(self.weather['main']['temp']-273.15)}°C")
-                self.side_frame.locationLabel.configure(text=f"{self.weather['name']}, {self.weather['sys']['country']}")
-                self.main_frame.sunLabel.configure(text=f'''
+                self.side_frame.temperatureLabel.configure(text=format_units(self.weather['main']['temp'],quantity='T'))
+                self.side_frame.weatherTypeLabel.configure(font=self.mfont,text=f'''{self.weather['weather'][0]['description'].title()}, {format_units(self.daily['min'],quantity='T')} to {format_units(self.daily['max'],quantity='T')}''')
+                
+                if self.weather['timezone']%3600==0:
+                    if self.weather['timezone']>=0:
+                        tz = f"UTC+{self.weather['timezone']//3600}:00"
+                    else:
+                        tz = f"UTC-{abs(self.weather['timezone'])//3600}:00"
+                else:
+                    if self.weather['timezone']>=0:
+                        tz = f"UTC+{self.weather['timezone']//3600}:{self.weather['timezone']%3600//60}"
+                    else:
+                        tz = f"UTC-{abs(self.weather['timezone'])//3600}:{abs(self.weather['timezone'])%3600//60}"
+                try:
+                    if self.location.raw['name'] == self.location.raw['address']['country']:
+                        self.side_frame.locationLabel.configure(text=f"{self.location.raw['address']['country']} ({tz})")
+                    else:
+                        self.side_frame.locationLabel.configure(text=f"{self.location.raw['name']}, {self.location.raw['address']['country']} ({tz})")
+                except:
+                    self.side_frame.locationLabel.configure(text=f"{self.location.raw['display_name']} ({tz})")
+
+                if self.hour_format==12:
+                    self.main_frame.sunLabel.configure(text=f'''
+Rise {datetime.utcfromtimestamp(self.weather['sys']['sunrise']+self.weather['timezone']).strftime('%I:%M%p')}
+Set {datetime.utcfromtimestamp(self.weather['sys']['sunset']+self.weather['timezone']).strftime('%I:%M%p')}''')
+                else:
+                    self.main_frame.sunLabel.configure(text=f'''
 Rise {datetime.utcfromtimestamp(self.weather['sys']['sunrise']+self.weather['timezone']).strftime('%H:%M')}
 Set {datetime.utcfromtimestamp(self.weather['sys']['sunset']+self.weather['timezone']).strftime('%H:%M')}''')
 
-                self.wind_dir = self.weather['wind']['deg']
-                if 337.5 < self.wind_dir or self.wind_dir <= 22.5:
-                    self.wind_dir = 'North'
-                elif 22.5 < self.wind_dir <= 67.5:
-                    self.wind_dir = 'North-East'
-                elif 67.5 < self.wind_dir <= 112.5:
-                    self.wind_dir = 'East'
-                elif 112.5 < self.wind_dir <= 157.5:
-                    self.wind_dir = 'South-East'
-                elif 157.5 < self.wind_dir <= 202.5:
-                    self.wind_dir = 'South'
-                elif 202.5 < self.wind_dir <= 247.5:
-                    self.wind_dir = 'South-West'
-                elif 247.5 < self.wind_dir <= 292.5:
-                    self.wind_dir = 'West'
-                elif 292.5 < self.wind_dir <= 337.5:
-                    self.wind_dir = 'North-West'
+                wind_direction = self.weather['wind']['deg']
+                if 337.5 < wind_direction or wind_direction <= 22.5:
+                    wind_direction = 'North (↑)'
+                elif 22.5 < wind_direction <= 67.5:
+                    wind_direction = 'North-East (↗)'
+                elif 67.5 < wind_direction <= 112.5:
+                    wind_direction = 'East (→)'
+                elif 112.5 < wind_direction <= 157.5:
+                    wind_direction = 'South-East (↘)'
+                elif 157.5 < wind_direction <= 202.5:
+                    wind_direction = 'South (↓)'
+                elif 202.5 < wind_direction <= 247.5:
+                    wind_direction = 'South-West (↙)'
+                elif 247.5 < wind_direction <= 292.5:
+                    wind_direction = 'West (←)'
+                elif 292.5 < wind_direction <= 337.5:
+                    wind_direction = 'North-West (↖)'
                 else:
-                    self.wind_dir = '—'
+                    wind_direction = '—'
 
-                self.main_frame.windLabel.configure(text=f"\n{self.weather['wind']['speed']*3.6:.2f}km/h Wind\n{self.wind_dir}")
+                self.main_frame.windLabel.configure(text=f"\n{format_units(self.weather['wind']['speed'],quantity='V')} Wind\n{wind_direction}")
                 self.main_frame.humidityLabel.configure(text=f"\nHumidity\n{self.weather['main']['humidity']}%")
                 self.main_frame.cloudLabel.configure(text=f"\nCloud Cover\n{self.weather['clouds']['all']}%")
 
+                local_tz_offset = datetime.now().astimezone().tzinfo.utcoffset(None).total_seconds()  # gives number of seconds local time is offset from UTC
                 for r in range(40):
-                    local_tz_offset = datetime.now().astimezone().tzinfo.utcoffset(None).total_seconds()  # gives number of seconds offset from UTC
-                    strtime = datetime.fromtimestamp(self.forecast['list'][r]['dt']-local_tz_offset+self.weather['timezone']).strftime('%a %H:%M')
+                    if self.hour_format==12:
+                        strtime = datetime.fromtimestamp(self.forecast['list'][r]['dt']-local_tz_offset+self.weather['timezone']).strftime('%A, %I:%M%p')
+                    else:
+                        strtime = datetime.fromtimestamp(self.forecast['list'][r]['dt']-local_tz_offset+self.weather['timezone']).strftime('%A, %H:%M')
                     self.main_frame.forecasts[r].forecastIconLabel.configure(image=self.icons[f"{self.forecast['list'][r]['weather'][0]['icon']}_small"])
                     self.main_frame.forecasts[r].forecastTimeLabel.configure(text=strtime)
                     self.main_frame.forecasts[r].forecastTypeLabel.configure(text=self.forecast['list'][r]['weather'][0]['description'].title())
-                    self.main_frame.forecasts[r].forecastTemperatureLabel.configure(text=f"{int(self.forecast['list'][r]['main']['temp']-273.15)}°C")
+                    self.main_frame.forecasts[r].forecastDataLabel.configure(text=f"(PoP {int(self.forecast['list'][r]['pop']*100)}%) {format_units(self.forecast['list'][r]['main']['temp'],quantity='T')}")
 
                 if self.weather['weather'][0]['icon'][2]=='d':
                     if self.colormode==self.colormodes[1]:
@@ -294,11 +587,14 @@ Set {datetime.utcfromtimestamp(self.weather['sys']['sunset']+self.weather['timez
                         toggle_color_mode()
 
             else:
+                self.main_frame.mapButton.configure(state='disabled')
+                self.main_frame.weatherMapButton.configure(state='disabled')
 
                 self.side_frame.weatherIconLabel.configure(image=self.icons['null'])
-                self.side_frame.weatherTypeLabel.configure(font=self.mfont,text=self.weather['message'].title())
-                self.side_frame.temperatureLabel.configure(text='—')
-                self.side_frame.locationLabel.configure(text='—')
+                self.side_frame.weatherTypeLabel.configure(font=self.sfont,text=self.weather['message'])
+                self.side_frame.temperatureLabel.configure(text=random.choice(('¯\(°_o)/¯', '(。﹏。)', '(´。＿。｀)','＞﹏＜','⊙.☉','(˘･_･˘)','>_<',':/')))
+                self.side_frame.locationLabel.configure(text='')
+
                 self.main_frame.sunLabel.configure(text='Rise ——\nSet ——')
                 self.main_frame.windLabel.configure(text='Wind\n——')
                 self.main_frame.humidityLabel.configure(text='Humidity\n——')
@@ -308,25 +604,18 @@ Set {datetime.utcfromtimestamp(self.weather['sys']['sunset']+self.weather['timez
                     self.main_frame.forecasts[r].forecastIconLabel.configure(image=self.icons['null_small'])
                     self.main_frame.forecasts[r].forecastTimeLabel.configure(text='')
                     self.main_frame.forecasts[r].forecastTypeLabel.configure(text='——')
-                    self.main_frame.forecasts[r].forecastTemperatureLabel.configure(text='')
+                    self.main_frame.forecasts[r].forecastDataLabel.configure(text='')
 
 
         def update_time():  # constantly update local time, timezone and location display
             if self.weather['cod']==200:
 
                 self.time = datetime.fromtimestamp(datetime.utcnow().timestamp()+self.weather['timezone'])
-                self.side_frame.dayLabel.configure(text=self.time.strftime('%A'))
-                if self.weather['timezone']%3600==0:
-                    if self.weather['timezone']>=0:
-                        strtime = self.time.strftime(f"%H:%M:%S UTC+{self.weather['timezone']//3600}:00")
-                    else:
-                        strtime = self.time.strftime(f"%H:%M:%S UTC-{abs(self.weather['timezone'])//3600}:00")
+                self.side_frame.dayLabel.configure(text=self.time.strftime('%A, %e %B %Y'))
+                if self.hour_format==12:
+                    self.side_frame.timeLabel.configure(text=self.time.strftime("%I:%M:%S%p"))
                 else:
-                    if self.weather['timezone']>=0:
-                        strtime = self.time.strftime(f"%H:%M:%S UTC+{self.weather['timezone']//3600}:{self.weather['timezone']%3600//60}")
-                    else:
-                        strtime = self.time.strftime(f"%H:%M:%S UTC-{abs(self.weather['timezone'])//3600}:{abs(self.weather['timezone'])%3600//60}")
-                self.side_frame.timeLabel.configure(text=strtime)
+                    self.side_frame.timeLabel.configure(text=self.time.strftime("%H:%M:%S"))
 
             else:
                 self.side_frame.dayLabel.configure(text='')
@@ -337,7 +626,12 @@ Set {datetime.utcfromtimestamp(self.weather['sys']['sunset']+self.weather['timez
 
         # configure and bind functions to widgets that were created before any functions was defined
         self.main_frame.colorModeButton.configure(command=toggle_color_mode)
-        self.side_frame.runButton.configure(command=lambda: update(1))
+        self.main_frame.hourFormatButton.configure(command=toggle_hour_format)
+        self.main_frame.unitsMenu.configure(command=toggle_units)
+        self.main_frame.mapButton.configure(command=open_map)
+        self.main_frame.weatherMapButton.configure(command=open_weather_map)
+        self.main_frame.aboutButton.configure(command=open_about_window)
+        self.side_frame.runButton.configure(command=lambda: update(None))
         self.side_frame.locationEntry.bind("<Return>",update,add='+')
 
 
@@ -347,4 +641,8 @@ Set {datetime.utcfromtimestamp(self.weather['sys']['sunset']+self.weather['timez
         self.mainloop()
 
 
-app = App()
+if getattr(sys, 'frozen', False):
+    pyi_splash.close()
+
+if __name__ == '__main__':
+    app = App()

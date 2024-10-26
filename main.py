@@ -1,4 +1,4 @@
-# PyWeather™ (v4.3): A modern weather app in python using OpenWeather API, and customtkinter
+# PyWeather™ (v4.4): A modern weather app in python using Open-Meteo Weather API, and customtkinter
 
 from ctypes import windll, byref, sizeof, c_int
 import sys, os
@@ -42,6 +42,19 @@ def get_forecast(lat:float|int, lon:float|int):
     return response
 
 
+'''# Old functions (unused)
+def get_weather_old(lat:float|int, lon:float|int):
+    response = requests.get(f'http://api.openweathermap.org/data/2.5/weather?lat={lat:.4f}&lon={lon:.4f}&appid={key}')
+    response = dict(response.json())
+    return response
+
+
+def get_forecast_old(lat:float|int, lon:float|int):
+    response = requests.get(f'http://api.openweathermap.org/data/2.5/forecast?lat={lat:.4f}&lon={lon:.4f}&appid={key}')
+    response = dict(response.json())    
+    return response
+
+
 def get_weather_geocoded(place:str):
     response = requests.get(f'http://api.openweathermap.org/data/2.5/weather?q={place}&appid={key}')
     response = dict(response.json())
@@ -51,7 +64,7 @@ def get_weather_geocoded(place:str):
 def get_forecast_geocoded(place:str):
     response = requests.get(f'http://api.openweathermap.org/data/2.5/forecast?q={place}&appid={key}')
     response = dict(response.json())    
-    return response
+    return response'''
 
 
 class SideFrame(ctk.CTkFrame):
@@ -69,6 +82,7 @@ class SideFrame(ctk.CTkFrame):
         self.locationFrame = ctk.CTkFrame(self,fg_color='transparent')
         self.locationEntry = ctk.CTkEntry(self.locationFrame,font=efont,fg_color=(c['white'],c['dark_bg']),border_color=(c['white'],c['dark_bg']),placeholder_text='Enter location (e.g. Bangalore)')
         self.runButton = ctk.CTkButton(self.locationFrame,image=icons['run'],text='',width=16)
+        self.locationButton = ctk.CTkButton(self.locationFrame,image=icons['location'],text='',width=16)
 
         self.weatherFrame = ctk.CTkFrame(self,fg_color='transparent')
         self.weatherIconLabel = ctk.CTkLabel(self.weatherFrame,fg_color='transparent',font=bfont,text_color=(c['light_mfont'],c['dark_mfont']),image=icons['null'],text='')
@@ -82,8 +96,9 @@ class SideFrame(ctk.CTkFrame):
 
         # place widgets
         self.locationFrame.pack(fill='x',side='top',pady=12)
-        self.locationEntry.pack(expand=True,fill='x',side='left',anchor='w',padx=(25,0),pady=25)
+        self.locationEntry.pack(expand=True,fill='x',side='left',anchor='w',padx=(25,2),pady=25)
         self.runButton.pack(side='right',anchor='e',padx=(0,25),pady=25)
+        self.locationButton.pack(side='right',anchor='w',padx=0,pady=25)
 
         self.weatherFrame.pack(expand=True,fill='both')
         self.weatherIconLabel.pack(expand=True,padx=25)
@@ -192,19 +207,19 @@ class MainFrame(ctk.CTkFrame):
         self.infoFrame = ctk.CTkFrame(self,fg_color='transparent')
 
         self.sunFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.sunIconLabel = ctk.CTkLabel(self.sunFrame,image=icons['sun_n'],text='')
+        self.sunIconLabel = ctk.CTkLabel(self.sunFrame,image=icons['sun'],text='')
         self.sunLabel = ctk.CTkLabel(self.sunFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Rise ——\nSet ——')
 
         self.windFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.windIconLabel = ctk.CTkLabel(self.windFrame,image=icons['wind_n'],text='')
+        self.windIconLabel = ctk.CTkLabel(self.windFrame,image=icons['wind'],text='')
         self.windLabel = ctk.CTkLabel(self.windFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Wind\n——')
 
         self.humidityFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.humidityIconLabel = ctk.CTkLabel(self.humidityFrame,image=icons['drop_n'],text='')
+        self.humidityIconLabel = ctk.CTkLabel(self.humidityFrame,image=icons['drop'],text='')
         self.humidityLabel = ctk.CTkLabel(self.humidityFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Humidity\n——')
 
         self.cloudFrame = ctk.CTkFrame(self.infoFrame,fg_color=(c['light_frame'],c['dark_frame']))
-        self.cloudIconLabel = ctk.CTkLabel(self.cloudFrame,image=icons['cloud_n'],text='')
+        self.cloudIconLabel = ctk.CTkLabel(self.cloudFrame,image=icons['cloud'],text='')
         self.cloudLabel = ctk.CTkLabel(self.cloudFrame,font=sfont,text_color=(c['light_mfont'],c['dark_mfont']),text='Cloud Cover \n——')
 
         # place info widgets
@@ -273,7 +288,7 @@ class AboutWindow(ctk.CTkToplevel):  # toplevel window for information about the
         self.aboutWindowFrame = ctk.CTkScrollableFrame(self,fg_color='transparent')
         self.aboutWindowFrame.pack(expand=True,fill='both')
 
-        self.titleLabel = ctk.CTkLabel(self.aboutWindowFrame,font=rfont,text='PyWeather (v4.3)',image=icons['11n'],compound='top')
+        self.titleLabel = ctk.CTkLabel(self.aboutWindowFrame,font=rfont,text='PyWeather (v4.4)',image=icons['11n'],compound='top')
         self.titleLabel.pack(expand=True,fill='both',padx=25,pady=25)
 
         self.textbox = ctk.CTkTextbox(self.aboutWindowFrame,font=sfont,fg_color='transparent',wrap='word',height=1080)
@@ -358,24 +373,50 @@ class App(ctk.CTk):
                 self.icons[f'{code}{dn}'] = ctk.CTkImage(Image.open(resource_path(f"assets/{code}{dn}.png")),size=(1660*scale1,1660*scale1))
                 self.icons[f'{code}{dn}_small'] = ctk.CTkImage(Image.open(resource_path(f"assets/{code}{dn}.png")),size=(1660*scale3,1660*scale3))
         
-        self.icons['null'] = ctk.CTkImage(Image.open(resource_path(f"assets/null.png")),size=(1660*scale1,1660*scale1))
-        self.icons['null_small'] = ctk.CTkImage(Image.open(resource_path(f"assets/null.png")),size=(1660*scale3,1660*scale3))
-
-        self.icons['sun_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/sun_d.png")),size=(512*scale2,320*scale2))
-        self.icons['sun_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/sun_n.png")),size=(512*scale2,320*scale2))
-        self.icons['wind_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/wind_d.png")),size=(320*scale2,320*scale2))
-        self.icons['wind_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/wind_n.png")),size=(320*scale2,320*scale2))
-        self.icons['drop_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/drop_d.png")),size=(240*scale2,320*scale2))
-        self.icons['drop_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/drop_n.png")),size=(240*scale2,320*scale2))
-        self.icons['cloud_d'] = ctk.CTkImage(Image.open(resource_path(f"assets/cloud_d.png")),size=(400*scale2,320*scale2))
-        self.icons['cloud_n'] = ctk.CTkImage(Image.open(resource_path(f"assets/cloud_n.png")),size=(400*scale2,320*scale2))
-
-        self.icons['run'] = ctk.CTkImage(Image.open(resource_path(f"assets/run.png")),size=(15,15))
+        self.icons['null'] = ctk.CTkImage(
+            Image.open(resource_path(f"assets/null.png")),
+            size=(1660*scale1,1660*scale1)
+        )
+        self.icons['null_small'] = ctk.CTkImage(
+            Image.open(resource_path(f"assets/null.png")),
+            size=(1660*scale3,1660*scale3)
+        )
+        self.icons['sun'] = ctk.CTkImage(
+            light_image=Image.open(resource_path(f"assets/sun_d.png")),
+            dark_image=Image.open(resource_path(f"assets/sun_n.png")),
+            size=(512*scale2,320*scale2)
+        )
+        self.icons['wind'] = ctk.CTkImage(
+            light_image=Image.open(resource_path(f"assets/wind_d.png")),
+            dark_image=Image.open(resource_path(f"assets/wind_n.png")),
+            size=(320*scale2,320*scale2)
+        )
+        self.icons['drop'] = ctk.CTkImage(
+            light_image=Image.open(resource_path(f"assets/drop_d.png")),
+            dark_image=Image.open(resource_path(f"assets/drop_n.png")),
+            size=(240*scale2,320*scale2)
+        )
+        self.icons['cloud'] = ctk.CTkImage(
+            light_image=Image.open(resource_path(f"assets/cloud_d.png")),
+            dark_image=Image.open(resource_path(f"assets/cloud_n.png")),
+            size=(400*scale2,320*scale2)
+        )
+        self.icons['run'] = ctk.CTkImage(
+            Image.open(resource_path(f"assets/run.png")),
+            size=(15,15)
+        )
+        self.icons['location'] = ctk.CTkImage(
+            Image.open(resource_path(f"assets/location.png")),
+            size=(15,15)
+        )
 
         # create frames for window — where all the widgets are created
         self.side_frame = SideFrame(self,(self.c['light_frame'],self.c['dark_frame']))
         self.main_frame = MainFrame(self,'transparent')
         self.about_window = None
+
+        # create geolocator (before calling update function)
+        self.geolocator = Nominatim(user_agent="PyWeather")
 
 
         # FUNCTIONS
@@ -388,19 +429,11 @@ class App(ctk.CTk):
                 self.titlecolor = self.titlecolors[1]
                 self.iconbitmap(resource_path('assets/nighticon.ico'))
                 self.main_frame.colorModeButton.configure(text='Light Mode')
-                self.main_frame.sunIconLabel.configure(image=self.icons['sun_n'])
-                self.main_frame.windIconLabel.configure(image=self.icons['wind_n'])
-                self.main_frame.humidityIconLabel.configure(image=self.icons['drop_n'])
-                self.main_frame.cloudIconLabel.configure(image=self.icons['cloud_n'])
             else:
                 self.colormode = self.colormodes[0]
                 self.titlecolor = self.titlecolors[0]
                 self.iconbitmap(resource_path('assets/dayicon.ico'))
                 self.main_frame.colorModeButton.configure(text='Dark Mode')
-                self.main_frame.sunIconLabel.configure(image=self.icons['sun_d'])
-                self.main_frame.windIconLabel.configure(image=self.icons['wind_d'])
-                self.main_frame.humidityIconLabel.configure(image=self.icons['drop_d'])
-                self.main_frame.cloudIconLabel.configure(image=self.icons['cloud_d'])
 
             windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
             ctk.set_appearance_mode(self.colormode)
@@ -475,18 +508,25 @@ class App(ctk.CTk):
 
         # update the app widgets functions (core of the app's working)
         try:
-            self.weather = get_weather_geocoded(self.side_frame.locationEntry.get())
+            self.weather = {'cod':0,'message':'Initialising...'}
         except requests.exceptions.ConnectionError:
-            self.weather = {'cod':0,'message':''}
+            self.weather = {'cod':0,'message':'Request failed!'}
             self.forecast = {}
 
 
-        def update(event):  # main function that updates all the app widgets with weather & forecast data
-            self.geolocator = Nominatim(user_agent="PyWeather")
+        def update(use_ip):  # main function that updates all the app widgets with weather & forecast data
+            # self.geolocator = Nominatim(user_agent="PyWeather")
+            try:
+                if use_ip:
+                    self.location = self.geolocator.geocode(dict(requests.get('http://ipinfo.io/json').json())['city'],addressdetails=True,language='en')
+                else:
+                    self.location = self.geolocator.geocode(self.side_frame.locationEntry.get(),addressdetails=True,language='en')
+            except geopy.exc.GeocoderUnavailable or requests.exceptions.ConnectionError:
+                self.weather = {'cod':599,'message':'No connection!'} # (informal convention) connection timed out code: 599
+                self.forecast = {}
+                self.daily = {}
 
             try: # handle location input
-                self.location = self.geolocator.geocode(self.side_frame.locationEntry.get(),addressdetails=True,language='en')
-
                 if self.location is not None:
                     self.weather = get_weather(self.location.latitude, self.location.longitude)
                     self.forecast = get_forecast(self.location.latitude, self.location.longitude)
@@ -500,14 +540,11 @@ class App(ctk.CTk):
                     self.weather = {'cod':404,'message':'Location not found!'}
                     self.forecast = {}
                     self.daily = {}
-            except geopy.exc.GeocoderUnavailable:
-                self.weather = {'cod':599,'message':'No connection!'} # (informal convention) connection timed out code: 599
-                self.forecast = {}
-                self.daily = {}
-            except:
+            except Exception as e:
                 self.weather = {'cod':400,'message':'Skill issue.'} # bad request code: 400
                 self.forecast = {}
                 self.daily = {}
+                print(f'\nERROR WHILE RUNNING: {e}')
                            
             if self.weather['cod']==200:  # 200 is the success, code; error codes such as 404, 400, etc. will not yield any data
                 self.main_frame.mapButton.configure(state='normal')
@@ -632,7 +669,8 @@ Set {datetime.utcfromtimestamp(self.weather['sys']['sunset']+self.weather['timez
         self.main_frame.weatherMapButton.configure(command=open_weather_map)
         self.main_frame.aboutButton.configure(command=open_about_window)
         self.side_frame.runButton.configure(command=lambda: update(None))
-        self.side_frame.locationEntry.bind("<Return>",update,add='+')
+        self.side_frame.locationButton.configure(command=lambda: update(True))
+        self.side_frame.locationEntry.bind("<Return>",lambda event: update(None),add='+')
 
 
         update_time()

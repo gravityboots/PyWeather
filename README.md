@@ -2,7 +2,7 @@
 
 PyWeather is a weather app in python using OpenWeatherMap's current weather and 3-hour-5-day forecast API services, built using customtkinter to make a modern and elegant GUI to display the weather, and even changes to light/dark mode based on local time of requested city!
 
-It is a personal/school project of mine that I will continue to work on in my free time. It's currently in an experimental stage, and things are subject to change. The planned features for the app (which may or may not be implemented) include a repsonsive GUI, switching to Open Meteo for weather data requests, a weather-map of the local area for precipitation using Mapbox or a similar API, etc. as well as the ability to save weather data to a file. Please note, that the app is only designed to work on Windows devices, and as of right now, for MacOS and Linux distributions: here be dragons!
+It is a personal/school project of mine that I will continue to work on in my free time. It's currently in an experimental stage, and things are subject to change. The planned features for the app (which may or may not be implemented) include a repsonsive GUI, switching to Open Meteo for weather data requests, a weather-map of the local area for precipitation using Mapbox or a similar API, et cetera. Please note, that the app is only designed to work on Windows devices and, as of right now, for those using MacOS or Linux distributions—"Here be dragons!"
 
 
 Example of the app in light mode (day time):

@@ -7,12 +7,12 @@ It is a personal/school project of mine that I will continue to work on in my fr
 
 Example of the app in light mode (day time):
 
-![example1](https://github.com/user-attachments/assets/5406dd86-544f-4a14-b434-b8513975a89e)
+![!example1](https://github.com/user-attachments/assets/dad53fdc-cdc0-4043-a81b-e1717843c211)
 
 
 Example of the app in dark mode (night time):
 
-![example2](https://github.com/user-attachments/assets/24d09105-a5fa-4a30-af96-467bb9cf319a)
+![!example2](https://github.com/user-attachments/assets/9f9f9777-9492-43d9-92aa-2021d7d77709)
 
 
 # Instructions for Use

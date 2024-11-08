@@ -1,7 +1,8 @@
 # PyWeather (v4.5): A modern weather app in python using OpenWeatherMap Weather API, and customtkinter
 
-from ctypes import windll, byref, sizeof, c_int
 import sys, os
+if sys.platform == 'win32':
+    from ctypes import windll, byref, sizeof, c_int
 import customtkinter as ctk
 from tkinter import messagebox
 from PIL import Image
@@ -367,8 +368,9 @@ class App(ctk.CTk):
         # interact with windows's window-attributes to change titlebar color
         self.titlecolors = 0x00D2B391, 0x003D1C0F
         self.titlecolor = self.titlecolors[1]
-        self.HWND = windll.user32.GetParent(self.winfo_id())
-        windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
+        if sys.platform == 'win32':
+            self.HWND = windll.user32.GetParent(self.winfo_id())
+            windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
 
         # app icons
         scale1 = 0.1875
@@ -443,7 +445,8 @@ class App(ctk.CTk):
                 self.iconbitmap(resource_path('assets/dayicon.ico'))
                 self.main_frame.colorModeButton.configure(text='Dark Mode')
 
-            windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
+            if sys.platform == 'win32':
+                windll.dwmapi.DwmSetWindowAttribute(self.HWND,35,byref(c_int(self.titlecolor)),sizeof(c_int))
             ctk.set_appearance_mode(self.colormode)
 
 

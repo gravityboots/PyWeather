@@ -19,7 +19,6 @@ if getattr(sys, 'frozen', False):
 
 
 key = '460de012b0fd52774245f52ed38c4888'
-#paid_key = 'bd5e378503939ddaee76f12ad7a97608'  # "startup" plan key; https://openweathermap.org/price
 
 
 def resource_path(relative_path:str):

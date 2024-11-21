@@ -16,6 +16,8 @@ Example of the app in dark mode (night time):
 
 # Instructions for Use
 
-In order to use the app: if you are on Windows, then you can simply download the latest executable (exe) file from the [releases](https://github.com/gravityboots/PyWeather/releases) page; otherwise you must go to the green "Download Code button", and download the zip folder of the code, or simply clone the repository on your computer with git clone. From there extract the zipped folder, and move it to wherever is convenient. Once that is done, you can open the directory in whichever code editor/terminal you are familiar with and run main.py. If you encounter any issues, please create an issue on Github, I will do my best to review them. Contributions will most likely not be given any priority any time soon.
+In order to use the app: if you are on Windows, then you can simply download the latest executable (exe) file from the [releases](https://github.com/gravityboots/PyWeather/releases) page; otherwise you must go to the green "Download Code" button, and download the zip folder of the code, or simply clone the repository on your computer with git clone. From there extract the zipped folder, and move it to wherever is convenient. Once that is done, you can open the directory in whichever code editor/terminal you are familiar with and run main.py with python.
+
+If you encounter any issues, please create an issue on Github, I will do my best to review them. Contributions will most likely not be given any priority any time soon.
 
 Hopefully you have a great time using the app to find out your local weather and get the upcoming forecast, so you're never caught off-guard!
